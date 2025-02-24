@@ -1,0 +1,20 @@
+const mongoose = require('mongoose');
+const studentSchema = new mongoose.Schema({
+    fullName:{
+        type:String
+    },
+    gender:{
+        type:String,
+    },
+    email:{
+        type:String,
+        lowercase:true
+    },
+    teachers:[{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'teacher'
+    }]
+
+})
+const studentModel = mongoose.model('student',studentSchema)
+module.exports = studentModel
