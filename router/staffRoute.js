@@ -12,5 +12,6 @@ router.patch('/staff/:id', updatedStaffs);
 router.delete('/staff/:id', deleteStaff);
 router.get('/mail/:id/:token',verifyMail);
 router.post('/login', userLogin);
+router.patch('/admin/:id',checkRole, confirmAdmin);
 
 module.exports = router;
