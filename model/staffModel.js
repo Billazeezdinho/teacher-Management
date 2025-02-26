@@ -22,7 +22,7 @@ const staffSchema = new mongoose.Schema({
         required: true,
         lowercase: true,
         default:'teacher',
-        enum:['admin', 'teacher','student']
+        enum:['admin', 'teacher']
     },
     staffImadeId:{
         type: String
@@ -51,9 +51,9 @@ const staffSchema = new mongoose.Schema({
             return date.toISOString()
         }
     },
-    teachers:[{
+    students:[{
         type:mongoose.Schema.Types.ObjectId,
-        ref: 'teacher'
+        ref: 'student'
     }]
 })
 const staffModel = mongoose.model('staff', staffSchema)

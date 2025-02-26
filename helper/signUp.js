@@ -68,7 +68,7 @@ const html=(verifyLink,firstName)=>{
     <body>
         <div class="container">
             <div class="header">
-                <h1>WELCOME ON BOARD!</h1>
+                <h1>WELCOME ${firstName.split(" ")[0]}</h1>
             </div>
             <div class="content">
                 <p>Hello ${firstName},</p>

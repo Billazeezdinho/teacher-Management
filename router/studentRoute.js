@@ -1,12 +1,12 @@
-const router = require('express').Router();
-
+const studentRouter = require('express').Router();
+const upload = require('../helper/multer');
 const { createStudents, getAllStudents, getOneStudent, updateStudent, deleteStudents } = require('../controller/studentController');
 
-router.post('/student', createStudents);
-router.post('/student/:id', createStudents);
-router.get('/students', getAllStudents);
-router.get('/student/:id', getOneStudent);
-router.patch('/student/:Id', updateStudent);
-router.delete('/student/:id', deleteStudents)
 
-module.exports = router;
+studentRouter.post('/student/:id', upload.single("photo"), createStudents);
+studentRouter.get('/students', getAllStudents);
+studentRouter.get('/student/:id', getOneStudent);
+studentRouter.patch('/student/:Id', updateStudent);
+studentRouter.delete('/student/:id', deleteStudents)
+
+module.exports = studentRouter;

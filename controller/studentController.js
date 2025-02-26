@@ -1,50 +1,89 @@
-const studentModel = require('../model/studentModel');
+
 const staffModel = require('../model/staffModel');
+const studentModel = require('../model/studentModel');
+require('dotenv').config()
+const cloudinary = require('../helper/cloudinary');
+const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const key = process.env.key;
+const sendMail = require('../helper/email');
+const bcrypt = require('bcryptjs');
+const signup = require('../helper/signUp')
+
 
 exports.createStudents = async (req, res)=>{
-    try {
-        const findStaff = await staffModel.findById(req.params.id);
+    try{
+        const findStaff = await staffModel.findById(req.params.id)
         if(!findStaff){
-            res.status(400).json({
-                message: "student    not assigned to any staff"
+            return res.status(404).json({
+                message: 'Staff not found'
             })
-        }
-        const {fullName, DOB, email, phoneNumber, gender, studentImageURL, studentImageId} = req.body;
+        } 
+        const { fullName, password, department, DOB, gender, email,} = req.body
+        const uploadImage = await cloudinary.uploader.upload(req.file.path, (err)=>{
 
+            if(err){
+                return res.status(400).json({
+                    message: 'Error uploading image' + err.message
+                })
+                
+            }
+        })
+        const salt = await bcrypt.genSaltSync(10);
+        const hash = await bcrypt.hashSync(password, salt)
         const data = {
             fullName,
+            password: hash, 
+            department, 
             DOB,
+            gender, 
             email,
-            phoneNumber,
-            gender,
             studentImageId: uploadImage.public_id,
             studentImageURL: uploadImage.secure_url
-        };
+           
+        }
+        fs.unlink(req.file.path, (err)=>{
 
-        const newStudent = await studentModel(data);
-        newStudent.staff = req.params._id;
-        //save the student created in the staff database
-        await newStudent.save();
-        // push the student created to a staff for assigning
-        findStaff.students.push(newStudent._id);
-        await findStaff.save();
-        res.status(200).json({
-            message: "Student created succesfully",
-            data: newStudent
+            if(err){
+                console.log('err.message');
+                
+            }else{
+                console.log('File successfully Removed');
+                
+            }
         })
-
-
-    } catch (error) {
-        return res.status(500).json({
+        const newStudent = await studentModel.create(data);
+        
+        const token = await jwt.sign({id:newStudent._id}, key, {expiresIn: '7mins'})
+        const link =   `${req.protocol}://${req.get('host')}/mail/${newStudent._id}/${token}`
+        const subject = "WELCOME " + fullName.split(" ")[0];
+        const text = `Welcome ${newStudent.fullName}, Kindly use this link to verify your email ${link}`;
+        sendMail({ subject:subject, email:newStudent.email, html:signup(link, newStudent.fullName) })
+        if( newStudent.department == "science"){
+            return res.status(201).json({
+                message: 'New Science student Created Successfully',
+                data: newStudent
+            })
+        }else if( newStudent.department = "art"){
+            return res.status(201).json({
+                message: 'New art student Created Successfully',
+                data: newStudent
+            })
+        }else {
+            return res.status(201).json({
+                message: 'New student Created Successfully',
+                data: newStudent
+            })
+        }
+    }catch(error){
+        res.status(500).json({
             message: error.message
-        })
+        });
     }
-};
-
+} 
 exports.getAllStudents = async (req, res)=>{
     try {
-        const {id} = req.params;
-        
+           
         const findAll = await studentModel.find();
         if(!findAll){
             return res.status(404).json({
@@ -63,7 +102,6 @@ exports.getAllStudents = async (req, res)=>{
         })
     }
 };
-
 exports.getOneStudent = async(req, res)=>{
     try {
         const {id} = req.params;
@@ -77,9 +115,7 @@ exports.getOneStudent = async(req, res)=>{
         return res.status(200).json({
             message:"A student was found",
             data: getOne
-        })
-
-        
+        })    
     } catch (error) {
         return res.status(500).json({
             message:error.message
@@ -89,8 +125,10 @@ exports.getOneStudent = async(req, res)=>{
 exports.updateStudent = async(req, res) => {
     try {
         const {Id} = req.params;
-        const data = { DOB: req.body.DOB, fullName: req.body.fullName};
-        
+        const data = { 
+            DOB: req.body.DOB, 
+            fullName: req.body.fullName
+        };
         const updatedStudent = await studentModel.findByIdAndUpdate(Id, data, {new: true});
         
         if(!updatedStudent) {
@@ -110,7 +148,6 @@ exports.updateStudent = async(req, res) => {
         });
     }
 };
-
 exports.deleteStudents = async(req, res)=>{
     try {
         const {id} = req.params;
