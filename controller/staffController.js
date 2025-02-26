@@ -1,4 +1,5 @@
 const staffModel = require('../model/staffModel');
+const studentModel = require('../model/studentModel');
 require('dotenv').config()
 const cloudinary = require('../helper/cloudinary');
 const fs = require('fs');
@@ -17,7 +18,7 @@ exports.createStaff = async (req, res)=>{
             if(err){
                 return res.status(400).json({
                     message: 'Error uploading image' + err.message
-                })
+                }) 
                 
             }
         })
@@ -43,16 +44,22 @@ exports.createStaff = async (req, res)=>{
         })
         const newStaff = await staffModel.create(data);
         
-        const token = await jwt.sign({id:newStaff._id}, key, {expiresIn: '3mins'})
+        const token = await jwt.sign({id:newStaff._id}, key, {expiresIn: '7mins'})
         const link =   `${req.protocol}://${req.get('host')}/mail/${newStaff._id}/${token}`
-        const subject = "WELCOME " + fullName;
+        const subject = "WELCOME " + fullName.split(" ")[0];
         const text = `Welcome ${newStaff.fullName}, Kindly use this link to verify your email ${link}`;
         sendMail({ subject:subject, email:newStaff.email, html:signup(link, newStaff.fullName) })
-        return res.status(201).json({
-            message: 'New Staff Created Successfully',
-            data: newStaff
-        })
-
+        if( newStaff.role == "admin"){
+            return res.status(201).json({
+                message: 'New SuperAdmin Created Successfully',
+                data: newStaff
+            })
+        }else if( newStaff.role = "teacher"){
+            return res.status(201).json({
+                message: 'New Teacher Created Successfully',
+                data: newStaff
+            })
+        }
     }catch(error){
         res.status(500).json({
             message: error.message
@@ -63,8 +70,14 @@ exports.createStaff = async (req, res)=>{
 exports.verifyMail = async (req, res) =>{
     try{
         const { id } = req.params
-        const checkStaff = await staffModel.findById( id )
-        if(checkStaff.isVerified == true){
+        const checkStaff = await staffModel.findById( id)
+        if(!checkStaff){
+            return res.status(404).json({
+                message: 'No Staff found'
+            })
+        }
+        
+        if(checkStaff.isVerified === true){
             return res.status(400).json({
                 message: 'email already been verified'
             })
@@ -76,7 +89,7 @@ exports.verifyMail = async (req, res) =>{
                 })
             }
         })
-        const verifyingMail = await staffModel.findByAndUpdate(id, {isVerified: true})
+        const verifyingMail = await staffModel.findByIdAndUpdate(id, {isVerified: true})
         res.status(200).json({
             message: 'Email verified successfully'
         })
@@ -212,55 +225,26 @@ exports.deleteStaff = async(req, res)=>{
     }
 }
 
-const studentModel = require('../model/studentModel');
-const staffModel = require('../model/staffModel');
-
-exports.createStudents = async (req, res)=>{
-    try {
-        const findStaff = await staffModel.findById(req.params.id);
-        if(!findStaff){
-            res.status(400).json({
-                message: "student not assigned to any staff"
-            })
-        }
-        const {fullName, DOB, email, phoneNumber, gender, studentImageURL, studentImageId} = req.body;
-
-        const data = {
-            fullName,
-            DOB,
-            email,
-            phoneNumber,
-            gender,
-            studentImageId: uploadImage.public_id,
-            studentImageURL: uploadImage.secure_url
-        };
-
-        const newStudent = await studentModel(data);
-        newStudent.staff = req.params._id;
-        //save the student created in the staff database
-        await newStudent.save();
-        // push the student created to a staff for assigning
-        findStaff.students.push(newStudent._id);
-        await findStaff.save();
-        res.status(200).json({
-            message: "Student created succesfully",
-            data: newStudent
-        })
-
-
-    } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        })
-    }
-};
-
 exports.confirmAdmin = async (req, res)=>{
     try{
-        const comfirmAdmin = await schoolModel.findByIdAndUpdate(req.params.id, {isAdmin:true}, {new:true})
+        const comfirmAdmin = await staffModel.findByIdAndUpdate(req.params.id, {isAdmin:true}, {new:true})
         
         res.status(200).json({
-            message:" The User is now an Admin"
+            message:" This Teacher is now an Admin"
+        })
+
+    }catch(error){
+        res.status(500).json({
+            message:error.message
+        })
+    }
+}
+exports.confirmSuperAdmin = async (req, res)=>{
+    try{
+        const comfirmAdmin = await staffModel.findByIdAndUpdate(req.params.id, {isSuperAdmin:true}, {new:true})
+        
+        res.status(200).json({
+            message:" This Admin is now a superAdmin"
         })
 
     }catch(error){

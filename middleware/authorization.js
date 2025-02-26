@@ -18,7 +18,7 @@ exports.checkRole = async (req, res, next) =>{
         }
         return data
     })
-    console.log(tokenOwner )
+    
     const checkUser = await staffModel.findById(tokenOwner.id)
     if(!checkUser){
         return res.status(404).json({
@@ -52,7 +52,7 @@ exports.adminRole = async (req, res, next) =>{
         }
         return data
     })
-    console.log(tokenOwner )
+    
     const checkUser = await staffModel.findById(tokenOwner.id)
     if(!checkUser){
         return res.status(404).json({
